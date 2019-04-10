@@ -1,0 +1,79 @@
+
+  饿汉式：
+  启动时自动初始化，后续没有线程安全问题
+  适用于资源消耗较小，可以随项目启动的情况下
+ 
+
+  懒汉式：
+  在需要资源的时候，才进行初始化，并返回
+  适用于资源消耗较大，不用随项目启动的情况下，存在线程安全问题
+ 
+
+
+  懒汉式：优化
+  解决普通懒汉式的线程安全问题
+  使用synchronized关键字可以在多线程运行状态下使得被保护代码块被依次访问，但会造成阻塞，所以使用时需要尽量缩小被保护的代码块的范围
+ 
+
+
+  使用内部类机制实现单例
+  类似懒加载机制，本实例中，当执行`LazyHolder.LAZY;`时才会加载内部类【初次涉及到内部类】，内部类中静态的属性决定了只加载一次，final关键字决定了指向不可变
+  【*】 对于构造的保护：虽然通过私有化构造函数可以确保无法通过关键字new创建对象，但无法避免其他手段的入侵【反射机制强制访问/反序列化等技术】
+ 
+
+
+ 枚举类型单例：  
+ 普通类无法直接继承Enum，使用枚举的类经过编译后的文件见EnumSingleton.jad   
+  
+ 关键代码==>  
+ 
+ ################################################
+ extends Enum 
+ 
+     private EnumSingleton(String s, int i){  
+         //(String name, int ordinal) 
+         super(s, i); 
+     }    
+  
+     public static final EnumSingleton INSTANCE;  
+     private Object data;
+     private static final EnumSingleton $VALUES[];    
+  
+     static{  
+         INSTANCE = new EnumSingleton("INSTANCE", 0); 
+         $VALUES = (new EnumSingleton[] { 
+             INSTANCE 
+         });  
+     }    
+  ################################################
+  
+ 编译后会默认通过静态字段/静态块进行初始化，多个枚举的值将以数组的形式存储，综上所见枚举类型默认使用单例【饿汉式】
+ 
+ 
+ ###### 枚举对反序列化的保护：采取了枚举的正常查找方式 ######
+ try {
+      Enum<?> en = Enum.valueOf((Class)cl, name);
+      result = en;
+ } catch (IllegalArgumentException ex) {
+      throw (IOException) new InvalidObjectException("enum constant " + name + " does not exist in " + cl).initCause(ex);
+ }
+ 
+ 
+
+ ###### 枚举对反射的保护： ######
+ ###### ①枚举的构造只能通过子类调用 ######
+ protected Enum(String name, int ordinal) {
+     this.name = name;
+     this.ordinal = ordinal;
+ }
+ 
+ ###### ②反射使用强制访问也无法对枚举类型进行创建 ######
+  if ((clazz.getModifiers() & Modifier.ENUM) != 0)
+  throw new IllegalArgumentException("Cannot reflectively create enum objects");
+
+
+
+
+
+ 单例模式破坏：
+	多线程安全、反射强制访问、反序列化/克隆；
